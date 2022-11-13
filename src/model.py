@@ -108,11 +108,11 @@ class DarkNet53(nn.Module):
     def __init__(self):
         super(DarkNet53, self).__init__()
         self.conv1 = ConvLayer(3, 32, kernel_size=3)
-        self.block1 = self.make_residual_block(32, 64, res_repeat=1)
-        self.block2 = self.make_residual_block(64, 128, res_repeat=2)
-        self.block3 = self.make_residual_block(128, 256, res_repeat=8)
-        self.block4 = self.make_residual_block(256, 512, res_repeat=8)
-        self.block5 = self.make_residual_block(512, 1024, res_repeat=4)
+        self.block1 = self._make_residual_block(32, 64, res_repeat=1)
+        self.block2 = self._make_residual_block(64, 128, res_repeat=2)
+        self.block3 = self._make_residual_block(128, 256, res_repeat=8)
+        self.block4 = self._make_residual_block(256, 512, res_repeat=8)
+        self.block5 = self._make_residual_block(512, 1024, res_repeat=4)
 
     def forward(self, x):
         x = self.conv1(x)
@@ -123,7 +123,7 @@ class DarkNet53(nn.Module):
         out1 = self.block5(x)
         return out1, out2, out3
 
-    def make_residual_block(self, in_dim, out_dim, res_repeat):
+    def _make_residual_block(self, in_dim, out_dim, res_repeat):
         layers = []
         layers.append(ConvLayer(in_dim, out_dim, kernel_size=3, stride=2))
         for _ in range(res_repeat):
@@ -166,6 +166,7 @@ class Upsample(nn.Module):
     def forward(self, x):
         x = F.interpolate(x, scale_factor=self.scale_factor, mode=self.mode)
         return x
+
 
 class YOLOTail(nn.Module):
 
