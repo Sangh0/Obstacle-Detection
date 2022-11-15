@@ -132,7 +132,7 @@ def get_img_info(img_dir):
 
 def convert_bbox_voc2yolo(label):
     # voc format
-    x1, y1 = int(float(label.get('xtl'))), int(float(label.get('ytl')))
+    x1, y1 = int(float(label.get('xtl')))-1, int(float(label.get('ytl')))-1
     x2, y2 = int(float(label.get('xbr'))), int(float(label.get('ybr')))
     assert x1 < x2 and y1 < y2, \
         f'x1 {x1} is bigger than x2 {x2} or y1 {y1} is bigger than y2 {y2}'
