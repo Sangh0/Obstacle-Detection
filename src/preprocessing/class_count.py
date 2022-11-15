@@ -3,6 +3,7 @@ import xml.etree.ElementTree as ET
 from glob import glob
 from tqdm.auto import tqdm
 
+
 def class_count(path, class_count_dict):
     xml_list = glob(path+'**/**/*.xml')
 
