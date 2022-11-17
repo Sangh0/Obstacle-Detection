@@ -2,21 +2,30 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from config import NUM_CLASSES, NUM_ANCHORS_PER_SCALE, ANCHORS, NUM_ATTRIB, LAST_LAYER_DIM
+from typing import *
+
+from .config import NUM_CLASSES, NUM_ANCHORS_PER_SCALE, ANCHORS, NUM_ATTRIB, LAST_LAYER_DIM
 
 
 class ConvLayer(nn.Module):
     """
-    Convolutional Layer
+    Convolutional Layer, Conv + BN + Leaky ReLU
     """
-    def __init__(self, in_dim, out_dim, kernel_size, stride, slope=0.1):
+    def __init__(
+        self, 
+        in_dim: int, 
+        out_dim: int, 
+        kernel_size: int, 
+        stride: int=1, 
+        slope: float=0.1
+    ):
         super(ConvLayer, self).__init__()
         padding = (kernel_size - 1) // 2
         self.conv = nn.Conv2d(in_dim, out_dim, kernel_size, stride, padding, bias=False)
         self.bn = nn.BatchNorm2d(out_dim)
         self.leaky_relu = nn.LeakyReLU(slope)
     
-    def forward(self, x):
+    def forward(self, x: torch.Tensor):
         x = self.conv(x)
         x = self.bn(x)
         x = self.leaky_relu(x)
@@ -27,15 +36,14 @@ class ResBlock(nn.Module):
     """
     Residual Block to build Darknet backbone
     """
-    
-    def __init__(self, in_dim):
+    def __init__(self, in_dim: int):
         super(ResBlock, self).__init__()
         assert in_dim % 2 == 0, f'{in_dim} is not even'
         hidden_dim = in_dim // 2
         self.conv1 = ConvLayer(in_dim, hidden_dim, kernel_size=1)
         self.conv2 = ConvLayer(hidden_dim, in_dim, kernel_size=3)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor):
         residual = x
         x = self.conv1(x)
         x = self.conv2(x)
@@ -44,8 +52,10 @@ class ResBlock(nn.Module):
 
 
 class YOLOLayer(nn.Module):
-
-    def __init__(self, scale, stride):
+    """
+    A last layer in yolo network to detect objects
+    """
+    def __init__(self, scale: str, stride: int):
         super(YOLOLayer, self).__init__()
         if scale == 's':
             idx = (0, 1, 2)
@@ -59,7 +69,7 @@ class YOLOLayer(nn.Module):
         self.anchors = torch.tensor([ANCHORS[i] for i in idx])
         self.stride = stride
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor):
         num_batch = x.size(0)
         num_grid = x.size(2)
 
@@ -104,23 +114,27 @@ class DarkNet53(nn.Module):
     """
     A backbone network to extract features
     """
-
-    def __init__(self):
+    def __init__(
+        self,
+        in_dim: int=3, 
+        num_filters: int=32, 
+        repeat_list: List[int]=[1,2,8,8,4],
+    ):
         super(DarkNet53, self).__init__()
-        self.conv1 = ConvLayer(3, 32, kernel_size=3)
-        self.block1 = self._make_residual_block(32, 64, res_repeat=1)
-        self.block2 = self._make_residual_block(64, 128, res_repeat=2)
-        self.block3 = self._make_residual_block(128, 256, res_repeat=8)
-        self.block4 = self._make_residual_block(256, 512, res_repeat=8)
-        self.block5 = self._make_residual_block(512, 1024, res_repeat=4)
+        self.conv1 = ConvLayer(in_dim, num_filters, kernel_size=3)
+        self.block1 = self._make_residual_block(num_filters, num_filters*2, res_repeat=repeat_list[0])
+        self.block2 = self._make_residual_block(num_filters*2, num_filters*4, res_repeat=repeat_list[1])
+        self.block3 = self._make_residual_block(num_filters*4, num_filters*8, res_repeat=repeat_list[2])
+        self.block4 = self._make_residual_block(num_filters*8, num_filters*16, res_repeat=repeat_list[3])
+        self.block5 = self._make_residual_block(num_filters*16, num_filters*32, res_repeat=repeat_list[4])
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor):
         x = self.conv1(x)
         x = self.block1(x)
         x = self.block2(x)
         out3 = self.block3(x)
-        out2 = self.block4(x)
-        out1 = self.block5(x)
+        out2 = self.block4(out3)
+        out1 = self.block5(out2)
         return out1, out2, out3
 
     def _make_residual_block(self, in_dim, out_dim, res_repeat):
@@ -132,10 +146,13 @@ class DarkNet53(nn.Module):
 
 
 class DetectionBlock(nn.Module):
-
-    def __init__(self, in_dim, out_dim, scale, stride):
+    """
+    Detection Block for detecting objects
+    """
+    def __init__(self, in_dim: int, out_dim: int, scale: str, stride: int):
         super(DetectionBlock, self).__init__()
-        hidden_dim = in_dim // 2
+        assert out_dim % 2 == 0, f'out dim {out_dim} is not even'
+        hidden_dim = out_dim // 2
         self.conv1 = ConvLayer(in_dim, hidden_dim, kernel_size=1)
         self.conv2 = ConvLayer(hidden_dim, out_dim, kernel_size=3)
         self.conv3 = ConvLayer(out_dim, hidden_dim, kernel_size=1)
@@ -145,25 +162,28 @@ class DetectionBlock(nn.Module):
         self.conv7 = nn.Conv2d(out_dim, LAST_LAYER_DIM, kernel_size=1, bias=True)
         self.yolo = YOLOLayer(scale, stride)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor):
         x = self.conv1(x)
         x = self.conv2(x)
         x = self.conv3(x)
         x = self.conv4(x)
-        branch = self.conv5(x)
-        x = self.conv6(branch)
+        self.branch = self.conv5(x)
+        x = self.conv6(self.branch)
         x = self.conv7(x)
         x = self.yolo(x)
         return x
 
 
 class Upsample(nn.Module):
-
-    def __init__(self, scale_factor, mode='nearest'):
+    """
+    Upsampling Layer to detect smaller objects in feature map
+    """
+    def __init__(self, scale_factor: float, mode: str='nearest'):
+        super(Upsample, self).__init__()
         self.scale_factor = scale_factor
         self.mode = mode
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor):
         x = F.interpolate(x, scale_factor=self.scale_factor, mode=self.mode)
         return x
 
@@ -182,7 +202,7 @@ class YOLOTail(nn.Module):
 
         self.detect3 = DetectionBlock(in_dim=384, out_dim=256, scale='s', stride=8)
 
-    def forward(self, x1, x2, x3):
+    def forward(self, x1: torch.Tensor, x2: torch.Tensor, x3: torch.Tensor):
         out1 = self.detect1(x1)
         branch1 = self.detect1.branch
         tmp = self.conv1(branch1)
@@ -202,13 +222,14 @@ class YOLOTail(nn.Module):
 
 class YOLOv3(nn.Module):
 
-    def __init__(self, nms=False, post=True):
+    def __init__(self, nms: bool=False, post: bool=True):
+        super(YOLOv3, self).__init__()
         self.backbone = DarkNet53()
         self.yolo_tail = YOLOTail()
         self.nms = nms
-        self.post = post
+        self.post_process = post
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor):
         tmp1, tmp2, tmp3 = self.backbone(x)
         out1, out2, out3 = self.yolo_tail(tmp1, tmp2, tmp3)
         out = torch.cat((out1, out2, out3), dim=1)
