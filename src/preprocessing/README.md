@@ -30,15 +30,13 @@ path: ./obstacle_detection/dataset/
 ├── ...
 ```
 
-**VOC to YOLO format converter**
-- convert voc to yolo format [code](https://github.com/Sangh0/Obstacle-Detection/blob/main/src/preprocessing/voc2yolo_converter.py)
+**VOC to YOLO format converter** [code](https://github.com/Sangh0/Obstacle-Detection/blob/main/src/preprocessing/voc2yolo_converter.py)
 
 ```
 $ python3 voc2yolo_converter.py --path ./dataset_dir/
 ```
   
-**VOC to COCO format converter**
-- convert voc to coco format [code](https://github.com/Sangh0/Obstacle-Detection/blob/main/src/preprocessing/voc2coco_converter.py) 
+**VOC to COCO format converter** [code](https://github.com/Sangh0/Obstacle-Detection/blob/main/src/preprocessing/voc2coco_converter.py) 
 
 ```
 $ python3 voc2coco_converter.py --path ./dataset_dir/
