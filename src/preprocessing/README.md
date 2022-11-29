@@ -44,5 +44,5 @@ $ python3 voc2coco_converter.py --path {data directory}
 
 **check the balance of classes** [code](https://github.com/Sangh0/Obstacle-Detection/blob/main/src/preprocessing/class_count.py)
 ```
-$ python3 class_count.py --folder_category {'large' or 'detail'} -- path {data directory} --save_file_name {csv file name}
+$ python3 class_count.py --folder_category {'large' or 'detail'} --path {data directory} --save_file_name {csv file name}
 ```
