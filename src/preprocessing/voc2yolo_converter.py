@@ -1,4 +1,5 @@
 import sys
+sys.path.append('/home/hoo7311/anaconda3/envs/pytorch/lib/python3.8/site-packages')
 import argparse
 import os
 import cv2
@@ -47,7 +48,7 @@ def voc2yolo_bbox(bbox, h, w):
     return [x_center, y_center, width, height]
 
 def convert_voc2yolo(path):
-    folders = glob(path+'/images/**')
+    folders = sorted(glob(path+'Bbox_*/Bbox_*'))
     for folder in tqdm(folders):
         xml_file = glob(folder+'/*.xml')
         if len(xml_file) != 1:
@@ -66,11 +67,15 @@ def convert_voc2yolo(path):
             
             # create label folder
             folder_name = img_file_name.split('/')[-2]
-            label_folder_name = folder.replace('images', 'labels')+'_label'
+            label_folder_name = folder.replace(folder_name, folder_name.replace('Bbox_', 'Label_'))
             os.makedirs(label_folder_name, exist_ok=True)
-            
             # create annotation file
-            annotation_file = label_folder_name+'/'+file_name.replace('.png', '.txt')
+            if file_name.split('.')[-1] == 'jpg':
+                annotation_file = label_folder_name+'/'+file_name.replace('.jpg', '.txt')
+            elif file_name.split('.')[-1] == 'png':
+                annotation_file = label_folder_name+'/'+file_name.replace('.png', '.txt')
+            else:
+                raise ValueError(f'format {file_name} dose not support')
             f = open(annotation_file, 'w')
             
             label_num_count = 0
@@ -92,7 +97,7 @@ def convert_voc2yolo(path):
                         f.write(str(coor)+' ')
                 label_num_count += 1
             f.close()
-            print(f'label count:{label_num_count}', annotation_file)
+        print('complete...!', folder)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Convert format', add_help=False)
