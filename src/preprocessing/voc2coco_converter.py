@@ -1,5 +1,5 @@
 import sys
-sys.path.append('/home/hoo7311/anaconda3/envs/pytorch/lib/python3.8/site-packages')
+sys.path.append('/home/hoo7311/anaconda3/envs/obstacle/lib/python3.8/site-packages')
 import os
 import cv2
 import json
@@ -133,6 +133,8 @@ def get_img_info(img_dir):
 def convert_bbox_voc2yolo(label):
     # voc format
     x1, y1 = int(float(label.get('xtl')))-1, int(float(label.get('ytl')))-1
+    if x1 < 0 or y1 < 0:
+        x1, y1 = 0, 0
     x2, y2 = int(float(label.get('xbr'))), int(float(label.get('ybr')))
     assert x1 < x2 and y1 < y2, \
         f'x1 {x1} is bigger than x2 {x2} or y1 {y1} is bigger than y2 {y2}'
