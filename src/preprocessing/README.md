@@ -47,7 +47,7 @@ $ python3 voc2coco_converter.py --path {data directory}
 $ python3 class_count.py --folder_category {'large' or 'detail'} --path {data directory} --save_file_name {csv file name}
 ```
 
-**Generate new labels with ignore classes**
+**Generate new labels with ignore classes** [code](https://github.com/Sangh0/Obstacle-Detection/blob/main/src/preprocessing/create_ignore_class.py)
 ```
 $ python3 create_ignore_class.py --path {original directory} --new_folder_name {new folder name} --ignore_classes {a list containing of ignore classes}
 ```
