@@ -61,11 +61,11 @@ def arg_as_list(param):
 def get_args_parser():
     parser = argparse.ArgumentParser(description='Set ignore classes', add_help=False)
     parser.add_argument('--path', type=str, required=True,
-                        help='the dataset dictionary')
+                        help='the dataset dictionary') # /MY_DL/dataset/obstacle_detection
     parser.add_argument('--new_folder_name', type=str, required=True,
-                        help='a new folder name')
+                        help='a new folder name') # 새로운 폴더 명
     parser.add_argument('--ignore_classes', type=arg_as_list, required=True,
-                        help='a list of ignore classes')
+                        help='a list of ignore classes') # 무시할 클래스 리스트로 입력
     return parser
 
 
@@ -116,10 +116,10 @@ def create_new_txt(folder_name: str, file: str, ignore_class_dict: dict):
 
     # create new file containing ignore classes
     file_name = file.split('/')
-    file_name[-4] = folder_name
+    file_name[3] = folder_name
     new_file_name = '/'.join(file_name)
     new_folder_name = '/'.join(new_file_name.split('/')[:-1])
-
+    
     if not os.path.isdir(new_folder_name):
         os.makedirs(new_folder_name, exist_ok=True)
     
@@ -158,14 +158,14 @@ def create_json_file_for_checking(folder_name: str, ignore_classes_dict: dict, o
     }
     
     # create json file
-    with open(folder_name+'/converted_info.json', 'w', encoding='utf-8') as f:
+    with open(folder_name+'converted_info.json', 'w', encoding='utf-8') as f:
         json.dump(all_contents, f, indent=4)
 
 
 def main(args):
     
     # create a new folder for datasets containing ignore classes
-    #create_new_folder(args.new_folder_name)
+    create_new_folder(args.new_folder_name)
     
     # get a dictionary of ignore classes
     ignore_classes_dict = get_ignore_labels(args.ignore_classes)
@@ -175,6 +175,7 @@ def main(args):
         
     # convert labels in each dataset files
     new_folder_name = args.new_folder_name.split('/')[-2]
+    
     for file in tqdm(train_files):
         create_new_txt(
             folder_name=new_folder_name,
